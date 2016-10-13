@@ -1,12 +1,11 @@
 package org.universAAL.tools;
 
 import java.awt.BorderLayout;
-import java.awt.EventQueue;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
 import javax.swing.JTabbedPane;
+import javax.swing.border.EmptyBorder;
 
 import org.universAAL.tools.role.RolePanel;
 import org.universAAL.tools.user.UserPanel;

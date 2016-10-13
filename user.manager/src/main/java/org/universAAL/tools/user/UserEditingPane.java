@@ -23,8 +23,10 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
+import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.GroupLayout;
@@ -37,8 +39,12 @@ import javax.swing.JTextField;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.SwingUtilities;
 
+import org.universAAL.middleware.owl.ManagedIndividual;
+import org.universAAL.middleware.owl.OntologyManagement;
 import org.universAAL.middleware.rdf.Resource;
 import org.universAAL.middleware.xsd.Base64Binary;
+import org.universAAL.ontology.cryptographic.Digest;
+import org.universAAL.ontology.cryptographic.digest.SecureHashAlgorithm;
 import org.universAAL.ontology.profile.User;
 import org.universAAL.ontology.security.UserPasswordCredentials;
 
@@ -110,7 +116,9 @@ public class UserEditingPane extends JPanel {
     	uTypes.setSelectedItem(ci.get(usr.getClassURI()));
     	uTypes.addActionListener(new ActionListener() {
     		public void actionPerformed(ActionEvent e) {
-    		    usr = (User) Resource.getResource(((UserTypesComboItem.ComboItem) uTypes.getSelectedItem()).getUri(), usr.getURI());
+    			//(User) Resource.getResource(((UserTypesComboItem.ComboItem) uTypes.getSelectedItem()).getUri(), usr.getURI());
+    		    usr = 
+    		    (User) ManagedIndividual.toManagedIndividual(((UserTypesComboItem.ComboItem) uTypes.getSelectedItem()).getUri(), usr);
     		}
     	});
     	
@@ -131,15 +139,13 @@ public class UserEditingPane extends JPanel {
 	});
     	
     	digests = new JComboBox(getAvailableDigests());
-    	digests.setSelectedItem(cred.getDigestAlgorithm());
-    	digests.addActionListener(new ActionListener() {
-	    public void actionPerformed(ActionEvent e) {
-		String sel = (String) digests.getSelectedItem();
-		if (sel.isEmpty()) {
-		    cred.setDigestAlgorithm(null);
-		} else {
-		    cred.setDigestAlgorithm(sel);
+    	if (cred.getDigestAlgorithm() != null) {
+			digests.setSelectedItem(cred.getDigestAlgorithm().getClassURI());
 		}
+		digests.addActionListener(new ActionListener() {
+	    public void actionPerformed(ActionEvent e) {
+	    	Digest sel = (Digest) digests.getSelectedItem();
+	    	cred.setDigestAlgorithm(sel);
 		if (password.getPassword() != null
 			&& cred.getPassword() != null
 			&& password.getPassword().equals(cred.getPassword().getVal())){
@@ -205,7 +211,7 @@ public class UserEditingPane extends JPanel {
     
     private void updatePassword() {
 	try {
-	    MessageDigest dig = MessageDigest.getInstance(cred.getDigestAlgorithm());
+	    MessageDigest dig = getMD(cred.getDigestAlgorithm());
 	    byte[] byteArray  = new String(password.getPassword()).getBytes("UTF-8");  
 	    cred.setpassword(new Base64Binary(dig.digest(byteArray)));
 	} catch (Exception e1) {
@@ -217,21 +223,43 @@ public class UserEditingPane extends JPanel {
 	}         
     }
     
-    private static Vector<String> getAvailableDigests(){
-	Vector<String> messageDigests = new Vector<String>();
-	messageDigests.add("");
-	Provider[] providers = Security.getProviders();
-	
-	for (int i = 0; i < providers.length; i++) {
-	    for (Object en : providers[i].keySet()) {
-		String e = (String) en;
-		if (e.startsWith("MessageDigest.")) {
-		    messageDigests.add(e.substring("MessageDigest.".length()));
+	static private MessageDigest getMD(Digest digestAlgorithm)
+			throws NoSuchAlgorithmException {
+		if (digestAlgorithm.equals(org.universAAL.ontology.cryptographic.digest.MessageDigest.IND_MD2)) {
+			return MessageDigest.getInstance("MD2");
 		}
-	    }
+		if (digestAlgorithm.equals(org.universAAL.ontology.cryptographic.digest.MessageDigest.IND_MD5)) {
+			return MessageDigest.getInstance("MD5");
+		}
+		if (digestAlgorithm.equals(SecureHashAlgorithm.IND_SHA)) {
+			return MessageDigest.getInstance("SHA");
+		}
+		if (digestAlgorithm.equals(SecureHashAlgorithm.IND_SHA256)) {
+			return MessageDigest.getInstance("SHA-256");
+		}
+		if (digestAlgorithm.equals(SecureHashAlgorithm.IND_SHA384)) {
+			return MessageDigest.getInstance("SHA-384");
+		}
+		if (digestAlgorithm.equals(SecureHashAlgorithm.IND_SHA512)) {
+			return MessageDigest.getInstance("SHA-512");
+		}
+		throw new NoSuchAlgorithmException();
 	}
-	
-	return messageDigests;
+    
+    private static Vector<Digest> getAvailableDigests(){
+    	Vector<Digest> messageDigests = new Vector<Digest>();
+    	OntologyManagement.getInstance().getOntClassInfo(Digest.MY_URI).getInstances();
+    	Set<String> clases = OntologyManagement.getInstance().getNamedSubClasses(Digest.MY_URI, true, false);
+    	for (String classURI : clases) {
+
+        	Resource[] inst = OntologyManagement.getInstance().getOntClassInfo(classURI).getInstances();
+        	for (int i = 0; i < inst.length; i++) {
+				Resource in = inst[i];
+				messageDigests.add((Digest) in);
+			}
+		}
+    	
+    	return messageDigests;
     }
     
     public User getUser(){

@@ -2,22 +2,40 @@ package org.universAAL.tools.user;
 
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
+import java.awt.EventQueue;
+
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JLabel;
 import javax.swing.JComboBox;
 import javax.swing.JTextField;
 import javax.swing.JButton;
+import javax.swing.RowFilter;
 
+import org.universAAL.ontology.profile.User;
+import org.universAAL.tools.CHeQuerrier;
+import org.universAAL.tools.MainToolFrame;
 import org.universAAL.tools.ProjectActivator;
+import org.universAAL.tools.subprofiles.UserEditor;
+
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.table.TableRowSorter;
+
 import java.awt.Dimension;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import javax.swing.event.CaretListener;
+import javax.swing.event.CaretEvent;
 
 public class UserPanel extends JPanel {
 	private JTable userTable;
 	private JTextField searchField;
+	private TableRowSorter<UserListTableModel> tableSorter;
+	private UserListTableModel tableModel;
 
 	/**
 	 * Create the panel.
@@ -32,11 +50,22 @@ public class UserPanel extends JPanel {
 		
 		JLabel lblFilter = new JLabel("Filter:");
 		
-		JComboBox userTypeSelector = new JComboBox();
+		UserTypesComboItem ci = new UserTypesComboItem();
+		JComboBox userTypeSelector = new JComboBox(ci.getAvailableUserTypes());
+		userTypeSelector.setSelectedItem(ci.get(User.MY_URI));
 		
 		JLabel lblSearch = new JLabel("Search:");
 		
 		searchField = new JTextField();
+		searchField.addCaretListener(new CaretListener() {
+			public void caretUpdate(CaretEvent e) {
+				EventQueue.invokeLater(new Runnable() {
+					public void run() {
+						newFilter();
+					}
+				});
+			}
+		});
 		searchField.setColumns(10);
 		GroupLayout gl_filterPanel = new GroupLayout(filterPanel);
 		gl_filterPanel.setHorizontalGroup(
@@ -68,15 +97,68 @@ public class UserPanel extends JPanel {
 		add(buttonPanel, BorderLayout.SOUTH);
 		
 		JButton addButton = new JButton("Add User");
+		addButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				 new UserAddDialog().show();
+             	tableModel.updated();
+			}
+		});
 		buttonPanel.add(addButton);
 		
 		JButton rmButton = new JButton("Remove User");
+		rmButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				EventQueue.invokeLater(new Runnable() {
+					
+					public void run() {
+						int viewRow = userTable.getSelectedRow();
+		                if (viewRow >= 0) {
+		                    int modelRow = 
+		                    		userTable.convertRowIndexToModel(viewRow);
+		                    User u = (User) tableModel.getUser(modelRow);
+		                    // delete confirmation
+		                    int opt = JOptionPane.showConfirmDialog
+		                    		(UserPanel.this, "Are you sure you want to removed the user: \n" + u.getURI() + " ?" ,
+		                    				"Removing User confirmation", JOptionPane.YES_NO_OPTION);
+		                	if (opt == JOptionPane.YES_OPTION) {
+								CHeQuerrier querier = new CHeQuerrier(
+										ProjectActivator.context);
+								querier.query("DELETE {<" + u.getURI() + ">}");
+								tableModel.updated();
+							}
+		                }
+		            }
+				});
+			}
+		});
 		buttonPanel.add(rmButton);
 		
 		JButton editButton = new JButton("Edit User");
+		editButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				//open UserEditor
+				EventQueue.invokeLater(new Runnable() {
+					
+					public void run() {
+						int viewRow = userTable.getSelectedRow();
+		                if (viewRow >= 0) {
+		                    int modelRow = 
+		                    		userTable.convertRowIndexToModel(viewRow);
+		                    User u = (User) tableModel.getUser(modelRow);
+		                    	JFrame f =	new UserEditor(u);
+		                    	f.pack();
+		                    	f.setVisible(true);
+		                }
+		            }
+				});
+			}
+		});
 		buttonPanel.add(editButton);
 		
-		userTable = new JTable(new UserListTableModel(ProjectActivator.context));
+		tableModel = new UserListTableModel(ProjectActivator.context);
+		userTable = new JTable();
+		tableSorter = new TableRowSorter<UserListTableModel>(tableModel);
+		
 		
 		JScrollPane scrollPane = new JScrollPane(userTable);
 		add(scrollPane, BorderLayout.CENTER);
@@ -84,4 +166,16 @@ public class UserPanel extends JPanel {
 
 	}
 
+	private void newFilter() {
+	    RowFilter<UserListTableModel, Object> rf = null;
+	    //If current expression doesn't parse, don't update.
+	    try {
+	        rf = RowFilter.regexFilter(searchField.getText(), 1);
+	        //TODO add another filter by user Type.
+	    } catch (java.util.regex.PatternSyntaxException e) {
+	        return;
+	    }
+	    tableSorter.setRowFilter(rf);
+	}
+	
 }

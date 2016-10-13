@@ -1,0 +1,6 @@
+#1 are prefixes
+#2 is the object turtle serialization
+
+$1
+
+INSERT {$2}

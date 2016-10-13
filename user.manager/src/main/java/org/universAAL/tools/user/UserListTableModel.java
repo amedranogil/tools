@@ -10,6 +10,7 @@ import javax.swing.event.TableModelListener;
 import javax.swing.table.TableModel;
 
 import org.universAAL.middleware.container.ModuleContext;
+import org.universAAL.middleware.rdf.Resource;
 import org.universAAL.ontology.profile.User;
 import org.universAAL.tools.CHeQuerrier;
 
@@ -108,14 +109,18 @@ class UserListTableModel implements TableModel, WindowListener {
 
 	/** {@ inheritDoc} */
 	public Object getValueAt(int rowIndex, int columnIndex) {
-		if (columnIndex == 0) {
+		if (columnIndex == 1) {
 			return usr.get(rowIndex).getURI();
 		}
-		if (columnIndex == 1)
+		if (columnIndex == 0)
 			return usr.get(rowIndex).getClassURI();
 		return null;
 	}
 
+	Resource getUser(int rowIndex){
+		return usr.get(rowIndex);
+	}
+	
 	/** {@ inheritDoc} */
 	public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
 	}
