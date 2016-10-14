@@ -151,6 +151,7 @@ public class UserPanel extends JPanel implements WindowListener{
 		                    		userTable.convertRowIndexToModel(viewRow);
 		                    User u = (User) tableModel.getUser(modelRow);
 		                    	JFrame f =	new UserEditor(u);
+		                    	f.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		                    	f.pack();
 		                    	f.setVisible(true);
 		                }

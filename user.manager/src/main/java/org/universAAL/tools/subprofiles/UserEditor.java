@@ -140,6 +140,8 @@ public class UserEditor extends JFrame {
 			SubProfileEditor spe = SubProfileEditorFactory.getSubProfileEditor(sp.getClassURI());
 			JPanel spep = spe.getSubprofileEditorPanel(sp);
 			String title = OntologyManagement.getInstance().getOntClassInfo(sp.getClassURI()).getResourceLabel();
+//			String title = sp.getOrConstructLabel(null);
+			System.out.println("title: " + title + " for: " + sp.getClassURI());
 			spTabbedPane.addTab(title, spep);
 		}
 		//TODO add + thing.
