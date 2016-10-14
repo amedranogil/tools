@@ -21,21 +21,20 @@ import java.awt.BorderLayout;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowListener;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
-import org.universAAL.ioc.dependencies.impl.PassiveDependencyProxy;
-import org.universAAL.middleware.serialization.MessageContentSerializer;
 import org.universAAL.middleware.util.Constants;
 import org.universAAL.ontology.profile.AssistedPerson;
 import org.universAAL.ontology.profile.User;
 import org.universAAL.ontology.profile.UserProfile;
 import org.universAAL.ontology.security.SecuritySubprofile;
 import org.universAAL.ontology.security.UserPasswordCredentials;
-import org.universAAL.tools.CHeQuerrier;
+import org.universAAL.tools.ProfilingServerHelper;
 import org.universAAL.tools.ProjectActivator;
 
 /**
@@ -116,25 +115,48 @@ public class UserAddDialog {
 	
     }
     
+    public void addWindowListener(WindowListener wl){
+    	frame.addWindowListener(wl);
+    }
+    
+    //Because of serialization type of User properies this does not work:
+//    static void addUser(User u, UserPasswordCredentials credendtials){
+//    	UserProfile up = new UserProfile(u.getURI()+"addedBySecurityTester");
+//    	u.setProfile(up);
+//    	SecuritySubprofile sp = new SecuritySubprofile(u.getURI()+"SecuritySubprofile");
+//    	up.setSubProfile(sp);
+//    	UserPasswordCredentials cred = new UserPasswordCredentials(u.getURI()+"UserPasswordCredentials");
+//    	cred.setUsername(credendtials.getUsername());
+//    	cred.setpassword(credendtials.getPassword());
+//    	cred.setDigestAlgorithm(credendtials.getDigestAlgorithm());
+//    	sp.changeProperty(SecuritySubprofile.PROP_CREDENTIALS, cred);
+//
+//    	String serialization = new PassiveDependencyProxy<MessageContentSerializer>
+//    	(ProjectActivator.context, new Object[] { MessageContentSerializer.class.getName() })
+//    	.getObject().serialize(u);
+//    	String[] split = CHeQuerrier.splitPrefixes(serialization);
+//
+//    	String prefixes = split[0];
+//    	String serialValue = split[1];
+//    	CHeQuerrier querier = new CHeQuerrier(ProjectActivator.context);
+//    	String query = CHeQuerrier.getQuery(CHeQuerrier.getResource("insertFullObject.sparql"), new String[]{prefixes,serialValue});
+//    	querier.query(query);
+//    	System.out.println(query);
+//    }
     static void addUser(User u, UserPasswordCredentials credendtials){
-    	UserProfile up = new UserProfile(u.getURI()+"addedBySecurityTester");
-    	u.setProfile(up);
-    	SecuritySubprofile sp = new SecuritySubprofile(u.getURI()+"SecuritySubprofile");
-    	up.setSubProfile(sp);
     	UserPasswordCredentials cred = new UserPasswordCredentials(u.getURI()+"UserPasswordCredentials");
     	cred.setUsername(credendtials.getUsername());
     	cred.setpassword(credendtials.getPassword());
     	cred.setDigestAlgorithm(credendtials.getDigestAlgorithm());
+    	SecuritySubprofile sp = new SecuritySubprofile(u.getURI()+"SecuritySubprofile");
     	sp.changeProperty(SecuritySubprofile.PROP_CREDENTIALS, cred);
-
-    	String serialization = new PassiveDependencyProxy<MessageContentSerializer>
-    	(ProjectActivator.context, new Object[] { MessageContentSerializer.class.getName() })
-    	.getObject().serialize(u);
-    	String[] split = CHeQuerrier.splitPrefixes(serialization);
-
-    	String prefixes = split[0];
-    	String serialValue = split[1];
-    	CHeQuerrier querier = new CHeQuerrier(ProjectActivator.context);
-    	querier.query(CHeQuerrier.getQuery(CHeQuerrier.getResource("insertFullObject.sparql"), new String[]{prefixes,serialValue}));
+    	
+    	ProfilingServerHelper caller = new ProfilingServerHelper(ProjectActivator.context);
+    	if (caller.addUserSucceeded(u)){
+    		UserProfile up = new UserProfile(u.getURI()+"addedBySecurityTester");
+    		if (caller.addUserProfileToUser(u, up)){
+    			caller.addSubprofileToUser(u, sp);
+    		}
+    	}
     }
 }

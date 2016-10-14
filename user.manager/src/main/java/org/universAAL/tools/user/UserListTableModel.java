@@ -10,6 +10,7 @@ import javax.swing.event.TableModelListener;
 import javax.swing.table.TableModel;
 
 import org.universAAL.middleware.container.ModuleContext;
+import org.universAAL.middleware.owl.OntologyManagement;
 import org.universAAL.middleware.rdf.Resource;
 import org.universAAL.ontology.profile.User;
 import org.universAAL.tools.CHeQuerrier;
@@ -25,7 +26,8 @@ class UserListTableModel implements TableModel, WindowListener {
 	
 	private CHeQuerrier querier;
 	
-	List<User> usr;
+	List<User> usr= new ArrayList<User>();
+	private static final String[] COL_NAMES = new String[] { "User Type", "User URI"};
 
 	public UserListTableModel(ModuleContext md) {
 		// helper = new ProfilingServerHelper(md);
@@ -36,14 +38,19 @@ class UserListTableModel implements TableModel, WindowListener {
 	void updated() {
 		
 		Object o = querier.query( CHeQuerrier.getQuery(CHeQuerrier.getResource("getObjectType.sparql"), new String[]{AUX_BAG_OBJECT,AUX_BAG_PROP, User.MY_URI}));
+		o = ((Resource)o).getProperty(AUX_BAG_PROP);
 		
 		if (o instanceof List){
-			usr = (List<User>) o;
-		} else if (o instanceof User){
-			usr = new ArrayList<User>();
-			usr.add((User) o);
-		} else {
-			usr = new ArrayList<User>();
+			List<Resource> lr = (List<Resource>) o;
+			usr.retainAll(lr);
+			for (Resource r : lr) {
+				if (!usr.contains(r)) {
+					usr.add((User) querier.getFullResourceGraph(r.getURI()));
+				}
+			}
+		}
+		 else if (o instanceof Resource){
+				usr.add((User) querier.getFullResourceGraph(((Resource) o).getURI()));
 		}
 		for (TableModelListener l : listeners) {
 			l.tableChanged(new TableModelEvent(this));
@@ -93,8 +100,7 @@ class UserListTableModel implements TableModel, WindowListener {
 
 	/** {@ inheritDoc} */
 	public String getColumnName(int columnIndex) {
-		String[] col = new String[] { "User URI", "Class URI" };
-		return col[columnIndex];
+		return COL_NAMES[columnIndex];
 	}
 
 	/** {@ inheritDoc} */
@@ -112,12 +118,15 @@ class UserListTableModel implements TableModel, WindowListener {
 		if (columnIndex == 1) {
 			return usr.get(rowIndex).getURI();
 		}
-		if (columnIndex == 0)
-			return usr.get(rowIndex).getClassURI();
+		if (columnIndex == 0) {
+			String label = Resource.getResource(getUser(rowIndex).getClassURI(), null).getOrConstructLabel(
+				    null);
+			return label;
+		}
 		return null;
 	}
 
-	Resource getUser(int rowIndex){
+	User getUser(int rowIndex){
 		return usr.get(rowIndex);
 	}
 	

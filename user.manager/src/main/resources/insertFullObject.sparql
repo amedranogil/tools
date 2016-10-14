@@ -3,4 +3,6 @@
 
 $1
 
-INSERT {$2}
+INSERT DATA { 
+$2
+}

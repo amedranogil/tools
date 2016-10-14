@@ -28,10 +28,13 @@ import javax.swing.table.TableRowSorter;
 import java.awt.Dimension;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+
 import javax.swing.event.CaretListener;
 import javax.swing.event.CaretEvent;
 
-public class UserPanel extends JPanel {
+public class UserPanel extends JPanel implements WindowListener{
 	private JTable userTable;
 	private JTextField searchField;
 	private TableRowSorter<UserListTableModel> tableSorter;
@@ -99,7 +102,9 @@ public class UserPanel extends JPanel {
 		JButton addButton = new JButton("Add User");
 		addButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				 new UserAddDialog().show();
+				UserAddDialog ua = new UserAddDialog();
+				ua.addWindowListener(UserPanel.this);
+				ua.show();
              	tableModel.updated();
 			}
 		});
@@ -123,7 +128,7 @@ public class UserPanel extends JPanel {
 		                	if (opt == JOptionPane.YES_OPTION) {
 								CHeQuerrier querier = new CHeQuerrier(
 										ProjectActivator.context);
-								querier.query("DELETE {<" + u.getURI() + ">}");
+								querier.query("DELETE { <" + u.getURI() + "> ?p ?o} WHERE {<" + u.getURI() + "> ?p ?o .}");
 								tableModel.updated();
 							}
 		                }
@@ -156,11 +161,10 @@ public class UserPanel extends JPanel {
 		buttonPanel.add(editButton);
 		
 		tableModel = new UserListTableModel(ProjectActivator.context);
-		userTable = new JTable();
+		userTable = new JTable(tableModel);
 		tableSorter = new TableRowSorter<UserListTableModel>(tableModel);
 		
-		
-		JScrollPane scrollPane = new JScrollPane(userTable);
+		JScrollPane scrollPane = new JScrollPane(userTable,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		add(scrollPane, BorderLayout.CENTER);
 		
 
@@ -176,6 +180,40 @@ public class UserPanel extends JPanel {
 	        return;
 	    }
 	    tableSorter.setRowFilter(rf);
+	}
+
+	public void windowOpened(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void windowClosing(WindowEvent e) {
+		tableModel.updated();
+	}
+
+	public void windowClosed(WindowEvent e) {
+		tableModel.updated();
+		
+	}
+
+	public void windowIconified(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void windowDeiconified(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void windowActivated(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void windowDeactivated(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }
